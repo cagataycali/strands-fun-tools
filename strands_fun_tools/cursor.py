@@ -66,7 +66,7 @@ def cursor(
             "status": "error",
             "content": [
                 {
-                    "text": "❌ pyautogui not installed. Run: pipx inject strands-research-agent pyautogui"
+                    "text": "❌ pyautogui not installed. Run: pip install pyautogui"
                 }
             ],
         }

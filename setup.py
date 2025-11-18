@@ -11,7 +11,7 @@ long_description = (
 
 setup(
     name="strands-fun-tools",
-    version="0.1.0",
+    version="0.1.1",
     description="Creative and utility tools for Strands AI agents - interactive experiences",
     long_description=long_description,
     long_description_content_type="text/markdown",

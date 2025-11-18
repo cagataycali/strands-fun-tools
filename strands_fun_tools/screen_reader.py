@@ -177,9 +177,7 @@ def screen_reader(
     action: str,
     interval: float = 2.0,
     limit: int = 10,
-    search_text: Optional[str] = None,
-    region: Optional[Tuple[int, int, int, int]] = None,
-    min_confidence: int = 30,
+    search_text: Optional[str] = None
 ) -> Dict[str, Any]:
     """Background screen monitoring with OCR and UI element detection.
 
@@ -188,8 +186,6 @@ def screen_reader(
         interval: Seconds between captures (default: 2.0)
         limit: Max number of history entries to return (default: 10)
         search_text: Text to search for in elements
-        region: Region to capture (x, y, width, height)
-        min_confidence: Minimum OCR confidence (0-100, default: 30)
 
     Returns:
         Dict with status and content
@@ -199,7 +195,7 @@ def screen_reader(
             "status": "error",
             "content": [
                 {
-                    "text": "❌ Dependencies missing. Run: pipx inject strands-research-agent pillow pytesseract && brew install tesseract"
+                    "text": "❌ Dependencies missing. Run: pip install pillow pytesseract && brew install tesseract"
                 }
             ],
         }
@@ -229,7 +225,7 @@ def screen_reader(
                 return {"status": "success", "content": [{"text": "📋 No history yet"}]}
 
             text = f"📋 **Recent Screen Captures ({len(history)} entries):**\n\n"
-            for entry in history[-5:]:  # Show last 5
+            for entry in history[-10:]:  # Show last 10
                 ts = entry["timestamp"]
                 count = entry["element_count"]
                 text += f"- **{ts}** - {count} elements\n"

@@ -272,7 +272,7 @@ def bluetooth(
             "status": "error",
             "content": [
                 {
-                    "text": "❌ bleak not installed. Run: pipx inject strands-research-agent bleak"
+                    "text": "❌ bleak not installed. Run: pip install bleak"
                 }
             ],
         }
