@@ -110,6 +110,13 @@ jobs:
 
     - name: Test package installation
       run: |
+        # Set up virtual display for GUI packages
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        export DISPLAY=:99
+        sudo Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        
+        # Install and test
         pip install dist/*.whl
         python -c "import strands_fun_tools; print('✓ Package installed successfully')"
 
