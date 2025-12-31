@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "strands-fun-tools"
-version = "0.1.1"
+dynamic = ["version"]
 description = "Creative and utility tools for Strands AI agents - interactive experiences"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -52,6 +52,7 @@ all = [
     "pytesseract",
     "bleak",
     "prompt_toolkit",
+    "asciimatics",
 ]
 chess = ["stockfish", "rich"]
 vision = ["opencv-python", "ultralytics", "pytesseract", "pillow"]
@@ -80,6 +81,9 @@ Repository = "https://github.com/cagataycali/strands-fun-tools"
 where = ["."]
 include = ["strands_fun_tools*"]
 exclude = ["tests*", "*.tests*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "strands_fun_tools.__version__.__version__"}
 
 [tool.black]
 line-length = 88

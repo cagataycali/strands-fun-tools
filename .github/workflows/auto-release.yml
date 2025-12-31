@@ -1,0 +1,164 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine bump2version toml packaging
+
+    - name: Configure git
+      run: |
+        git config --local user.email "cagataycali@icloud.com"
+        git config --local user.name "cagataycali"
+
+    - name: Determine version bump type
+      id: version_bump
+      run: |
+        # Get commit messages since last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -z "$LAST_TAG" ]; then
+          COMMITS=$(git log --pretty=format:"%s" HEAD~10..HEAD)
+        else
+          COMMITS=$(git log --pretty=format:"%s" ${LAST_TAG}..HEAD)
+        fi
+        
+        echo "Recent commits:"
+        echo "$COMMITS"
+        
+        # Determine bump type based on commit messages
+        if echo "$COMMITS" | grep -E "^(feat|feature|BREAKING CHANGE|!:|major:)" | head -1; then
+          if echo "$COMMITS" | grep -E "BREAKING CHANGE|!:|major:"; then
+            echo "bump_type=major" >> $GITHUB_OUTPUT
+            echo "🔥 Major version bump detected (breaking changes)"
+          else
+            echo "bump_type=minor" >> $GITHUB_OUTPUT  
+            echo "✨ Minor version bump detected (new features)"
+          fi
+        elif echo "$COMMITS" | grep -E "^(fix|bugfix|patch:|perf:|docs:|style:|refactor:|test:|chore:)" | head -1; then
+          echo "bump_type=patch" >> $GITHUB_OUTPUT
+          echo "🐛 Patch version bump detected (fixes/improvements)"
+        else
+          echo "bump_type=patch" >> $GITHUB_OUTPUT
+          echo "📝 Defaulting to patch version bump"
+        fi
+
+    - name: Get current version from __version__.py
+      id: current_version
+      run: |
+        # Create __version__.py if it doesn't exist
+        if [ ! -f strands_fun_tools/__version__.py ]; then
+          echo '__version__ = "0.1.1"' > strands_fun_tools/__version__.py
+          VERSION="0.1.1"
+        else
+          VERSION=$(python -c "exec(open('strands_fun_tools/__version__.py').read()); print(__version__)")
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+
+    - name: Bump version
+      id: bump_version
+      run: |
+        # Create .bumpversion.cfg if it doesn't exist
+        if [ ! -f .bumpversion.cfg ]; then
+          cat > .bumpversion.cfg << EOL
+        [bumpversion]
+        current_version = ${{ steps.current_version.outputs.version }}
+        commit = False
+        tag = False
+        
+        [bumpversion:file:strands_fun_tools/__version__.py]
+        search = __version__ = "{current_version}"
+        replace = __version__ = "{new_version}"
+        EOL
+        fi
+        
+        # Bump version
+        bump2version ${{ steps.version_bump.outputs.bump_type }} --verbose
+        
+        NEW_VERSION=$(python -c "exec(open('strands_fun_tools/__version__.py').read()); print(__version__)")
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Test package installation
+      run: |
+        pip install dist/*.whl
+        python -c "import strands_fun_tools; print('✓ Package installed successfully')"
+
+    - name: Commit and tag version
+      run: |
+        git add strands_fun_tools/__version__.py .bumpversion.cfg
+        git commit -m "🚀 Release v${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
+        git tag "v${{ steps.bump_version.outputs.new_version }}"
+        git push origin main --tags
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.bump_version.outputs.new_version }}
+        release_name: strands-fun-tools v${{ steps.bump_version.outputs.new_version }}
+        body: |
+          ## 🎉 strands-fun-tools v${{ steps.bump_version.outputs.new_version }}
+          
+          ### 📦 Installation
+          ```bash
+          pip install strands-fun-tools==${{ steps.bump_version.outputs.new_version }}
+          ```
+          
+          ### 🔄 Upgrade
+          ```bash
+          pip install --upgrade strands-fun-tools
+          ```
+          
+          ### 📋 Changes
+          This release includes the latest commits to main branch.
+          
+          **Full Changelog**: https://github.com/cagataycali/strands-fun-tools/compare/v${{ steps.current_version.outputs.version }}...v${{ steps.bump_version.outputs.new_version }}
+        draft: false
+        prerelease: false
+
+    - name: Summary
+      run: |
+        echo "## 🎉 Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** ${{ steps.current_version.outputs.version }} → ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bump Type:** ${{ steps.version_bump.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **PyPI:** https://pypi.org/project/strands-fun-tools/${{ steps.bump_version.outputs.new_version }}/" >> $GITHUB_STEP_SUMMARY
+        echo "- **GitHub Release:** https://github.com/cagataycali/strands-fun-tools/releases/tag/v${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY

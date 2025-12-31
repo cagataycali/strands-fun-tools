@@ -99,3 +99,10 @@ try:
     __all__.append("dialog")
 except ImportError:
     pass
+
+try:
+    from .asciimatics_ui import asciimatics_ui
+
+    __all__.append("asciimatics_ui")
+except ImportError:
+    pass
