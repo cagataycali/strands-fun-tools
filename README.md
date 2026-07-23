@@ -7,6 +7,39 @@ Creative and utility tools for Strands AI agents - Bluetooth, vision, cursor con
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
+## 🔌 Use as an MCP server
+
+Use strands-fun-tools from **Claude Code, Claude Desktop, Cursor, Kiro, or any MCP client** — every available tool (`cursor`, `clipboard`, `chess`, `bluetooth`, `screen_reader`, `yolo_vision`, `take_photo`, `listen`, `dialog`, and more) becomes an MCP tool.
+
+```bash
+claude mcp add fun -- uvx strands-fun-tools
+```
+
+Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "fun": {
+      "command": "uvx",
+      "args": ["strands-fun-tools"]
+    }
+  }
+}
+```
+
+Options:
+
+```bash
+strands-fun-tools --tools cursor,clipboard,take_photo   # expose a subset
+strands-fun-tools --skip bluetooth,chess                # drop groups
+strands-fun-tools --http --port 8000                    # HTTP mode, multi-client
+```
+
+> Tool groups import lazily — groups whose optional deps aren't installed are skipped automatically. Install extras for more tools: `uvx --with 'strands-fun-tools[all]' strands-fun-tools`
+
+---
+
 ## 📦 Installation
 
 ```bash
